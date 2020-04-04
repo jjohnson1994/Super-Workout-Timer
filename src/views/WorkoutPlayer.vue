@@ -3,12 +3,20 @@
     <el-row>
       <el-card class="box-card">
         <h1>{{ currentExercise.title || workout.title }}</h1>
-        <p>{{ formattedTimeRemaining }}</p>
-        <p v-if="currentExercise.reps !== undefined">{{ currentExercise.reps }}</p>
-        <p>{{ currentExercise.state }}</p>
-        <p>Set {{ currentExercise.setIndex }} of {{ currentExercise.sets }}</p>
-        <el-progress :percentage="currentExercise.setIndex / currentExercise.sets * 100" :color="currentExercise.state === 'working' ? '#FF0000' : '#00FF00'"/>
-        <el-button @click="start">Start</el-button>
+        <h1 id="timerText">
+          <span v-if="currentExercise.reps !== undefined">{{ currentExercise.reps }} REPS</span>
+          <span v-else>{{ formattedTimeRemaining }}</span>
+        </h1>
+        <p id="informationText">
+          <span>{{ currentExercise.state === 'working' ? 'GO' : 'REST' }} </span>
+          <span>Set {{ currentExercise.setIndex }} of {{ currentExercise.sets }}</span>
+        </p>
+        <el-progress
+          :percentage="(currentExercise.setIndex - 1) / currentExercise.sets * 100"
+          :show-text="false"
+          :color="currentExercise.state === 'working' ? '#FF0000' : '#00FF00'"
+        />
+        <el-button @click="start" :disabled="isRunning">Start</el-button>
         <el-button id="btnContinue">Continue</el-button>
       </el-card>
     </el-row>    
@@ -51,55 +59,20 @@
 </template>
 
 <script>
-const intervalTypes = {
-  forTime: 'FOR_TIME',
-  forReps: 'FOR_REPS',
-};
+import intervalTypes from '@/helpers/IntervalTypes';
+import workout from '@/helpers/ExampleWorkouts';
+import timer from '@/helpers/Timer';
+import states from '@/helpers/WorkoutStates';
 
-const workout = { 
-  title: 'Workout A',
-  exercises: [
-    {
-      title: 'Dead Hang',
-      intervalType: intervalTypes.forTime,
-      timeOn: 7,
-      timeOff: 3,
-      sets: 6,
-      rest: 30,
-    },
-    {
-      title: 'Pushups',
-      intervalType: intervalTypes.forReps,
-      reps: 8,
-      sets: 3,
-      rest: 30
-    },
-    {
-      title: 'Sit Ups',
-      intervalType: intervalTypes.forReps,
-      reps: 8,
-      sets: 3,
-      rest: 30
-    },
-    {
-      title: 'Squats',
-      intervalType: intervalTypes.forReps,
-      reps: 8,
-      sets: 3,
-      rest: 30
-    }
-  ]
-};
-
+const millsToSeconds = 1000;
 const expandExercisesIntoArray = exercises => {
-  console.log('expand', exercises);
   return exercises.reduce((acc, exercise, index) => {
     for (let i = 0; i < exercise.sets; i++) {
       const baseDescription = {
         title: exercise.title,
         sets: exercise.sets,
         exerciseIndex: index,
-        setIndex: i,
+        setIndex: i + 1,
         intervalType: exercise.intervalType
       };
 
@@ -144,56 +117,50 @@ const expandExercisesIntoArray = exercises => {
   }, []);
 }
 
-const states = {
-  notStarted: 'not_started',
-  working: 'working',
-  resting: 'resting',
-};
-
-const millsToSeconds = 100;
-
-const timer = ({ waitFor, onTick, intervalLength = 25 }) => {
-  let waited = 0;
-
-  return new Promise((resolve) => {
-    const windowInterval = window.setInterval(() => {
-      waited += intervalLength;
-      onTick({ waited, remaining: waitFor - waited });
-
-      if (waited >= waitFor) {
-        resolve();
-        window.clearInterval(windowInterval);
-      }
-    }, intervalLength);
-  });
-};
-
 export default {
   name: 'WorkoutPlayer',
   data() {
     return {
       workout,  
       currentExercise: {},
+      exercisesArray: [],
       timeRemaining: 0,
+      isRunning: false,
     };
   },
   computed: {
     formattedTimeRemaining() {
-      const formattedTimeRemaining = `${Math.round((this.timeRemaining / 1000) * 100) / 100}`.padEnd(5, '0');
-      return formattedTimeRemaining;
+      const duration = this.timeRemaining;
+
+      let milliseconds = parseInt((duration%1000)/100);
+      let seconds = parseInt((duration/1000)%60);
+      let minutes = parseInt((duration/(1000*60))%60);
+      let hours = parseInt((duration/(1000*60*60))%24);
+
+      hours = (hours < 10) ? "0" + hours : hours;
+      minutes = (minutes < 10) ? "0" + minutes : minutes;
+      seconds = (seconds < 10) ? "0" + seconds : seconds;
+
+      return hours + ":" + minutes + ":" + seconds + "." + milliseconds;
     },
   },
   methods: {
     start() {
-      const play = async (exercises, index = 0) => {
-        const exercise = exercises[index];
+      if (this.isRunning) {
+        return;
+      }
+
+      this.isRunning = true;
+      this.exercisesArray = expandExercisesIntoArray(this.workout.exercises);
+
+      const play = async () => {
+        const exercise = this.exercisesArray.shift();
         this.currentExercise = exercise;
 
         if (exercise.intervalType === intervalTypes.forTime && exercise.state === states.working) {
           await timer({
             waitFor: exercise.time * millsToSeconds,
-            onTick: ({ waited, remaining }) => {
-              console.log(waited, remaining);
+            onTick: ({ remaining }) => {
               this.timeRemaining = remaining;
             },
           });
@@ -207,21 +174,28 @@ export default {
         } else if (exercise.state === states.resting) {
           await timer({
             waitFor: exercise.rest * millsToSeconds,
-            onTick: ({ waited, remaining }) => {
-              console.log(waited, remaining);
+            onTick: ({ remaining }) => {
               this.timeRemaining = remaining;
             },
           });
         }
 
-        if (exercises[index + 1]) {
-          play(exercises, index + 1);
+        if (this.exercisesArray.length) {
+          play();
+        } else {
+          this.isRunning = false;
         }
       };
 
-      const exercisesArray = expandExercisesIntoArray(this.workout.exercises);
-      play(exercisesArray);
+      play();
     },
   },
 }
 </script>
+
+<style>
+  #timerText {
+    text-align: center;
+    font-size: 60px;
+  }
+</style>
