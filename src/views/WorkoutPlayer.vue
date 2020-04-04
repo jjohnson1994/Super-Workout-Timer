@@ -91,66 +91,57 @@ const workout = {
   ]
 };
 
-function* exerciseGenerator(exercises) {
-  let exerciseIndex = 0;
-  let setIndex = 0;
-
-  while (exerciseIndex < exercises.length) {
-    const exercise = exercises[exerciseIndex];
-
-    setIndex += 1;
-
-    const baseDescription = {
-      title: exercise.title,
-      sets: exercise.sets,
-      exerciseIndex,
-      setIndex,
-      intervalType: exercise.intervalType
-    };
-
-    if (exercise.intervalType === intervalTypes.forTime) {
-      yield {
-        state: states.working,
-        time: exercise.timeOn,
-        ...baseDescription,
-      }
-
-      yield {
-        state: states.resting,
-        rest: exercise.timeOff,
-        ...baseDescription
-      }
-    } else if (exercise.intervalType === intervalTypes.forReps) {
-      yield {
-        state: states.working,
-        reps: exercise.reps,
-        ...baseDescription
-      }
-
-      yield {
-        state: states.resting,
-        rest: exercise.rest,
-        ...baseDescription
-      }
-    }
-
-    if (setIndex >= exercise.sets) {
-      exerciseIndex += 1;
-      setIndex = 0;
+const expandExercisesIntoArray = exercises => {
+  console.log('expand', exercises);
+  return exercises.reduce((acc, exercise, index) => {
+    for (let i = 0; i < exercise.sets; i++) {
+      const baseDescription = {
+        title: exercise.title,
+        sets: exercise.sets,
+        exerciseIndex: index,
+        setIndex: i,
+        intervalType: exercise.intervalType
+      };
 
       if (exercise.intervalType === intervalTypes.forTime) {
-        yield {
+        acc.push({
+          state: states.working,
+          time: exercise.timeOn,
+          ...baseDescription,
+        });
+
+        acc.push({
+          state: states.resting,
+          rest: exercise.timeOff,
+          ...baseDescription
+        });
+      } else if (exercise.intervalType === intervalTypes.forReps) {
+        acc.push({
+          state: states.working,
+          reps: exercise.reps,
+          ...baseDescription
+        });
+
+        acc.push({
           state: states.resting,
           rest: exercise.rest,
           ...baseDescription
-        }
+        });
       }
-    }
-  }
 
-  yield {
-    title: 'Workout Complete!'
-  }
+      if (i >= exercise.sets) {
+        if (exercise.intervalType === intervalTypes.forTime) {
+          acc.push({
+            state: states.resting,
+            rest: exercise.rest,
+            ...baseDescription
+          })
+        }
+      } 
+    }
+
+    return acc;
+  }, []);
 }
 
 const states = {
@@ -194,8 +185,8 @@ export default {
   },
   methods: {
     start() {
-      const generator = exerciseGenerator(this.workout.exercises);
-      const play = async exercise => {
+      const play = async (exercises, index = 0) => {
+        const exercise = exercises[index];
         this.currentExercise = exercise;
 
         if (exercise.intervalType === intervalTypes.forTime && exercise.state === states.working) {
@@ -223,14 +214,13 @@ export default {
           });
         }
 
-        const { value: nextExercise } = generator.next();
-        if (nextExercise) {
-          play(nextExercise);
+        if (exercises[index + 1]) {
+          play(exercises, index + 1);
         }
       };
 
-      const exercise = generator.next().value;
-      play(exercise);
+      const exercisesArray = expandExercisesIntoArray(this.workout.exercises);
+      play(exercisesArray);
     },
   },
 }
