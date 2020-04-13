@@ -11,11 +11,6 @@
           <span>{{ currentExercise.state === 'working' ? 'GO' : 'REST' }} </span>
           <span>Set {{ currentExercise.setIndex }} of {{ currentExercise.sets }}</span>
         </p>
-        <el-progress
-          :percentage="(currentExercise.setIndex - 1) / currentExercise.sets * 100"
-          :show-text="false"
-          :color="currentExercise.state === 'working' ? '#FF0000' : '#00FF00'"
-        />
         <el-button @click="start" :disabled="isRunning">Start</el-button>
         <el-button id="btnContinue">Continue</el-button>
       </el-card>
@@ -60,7 +55,6 @@
 
 <script>
 import intervalTypes from '@/helpers/IntervalTypes';
-import workout from '@/helpers/ExampleWorkouts';
 import timer from '@/helpers/Timer';
 import states from '@/helpers/WorkoutStates';
 
@@ -121,12 +115,15 @@ export default {
   name: 'WorkoutPlayer',
   data() {
     return {
-      workout,  
+      workout: {},  
       currentExercise: {},
       exercisesArray: [],
       timeRemaining: 0,
       isRunning: false,
     };
+  },
+  mounted() {
+    this.workout = JSON.parse(window.localStorage.getItem('workouts')).find(({ id }) => id === 1);
   },
   computed: {
     formattedTimeRemaining() {

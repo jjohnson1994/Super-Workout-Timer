@@ -1,6 +1,7 @@
 import intervalTypes from '@/helpers/IntervalTypes';
 
 const workout1 = { 
+  id: 1,
   title: 'Workout A',
   exercises: [
     // {
@@ -61,7 +62,14 @@ const workout1 = {
       rest: 60
     },
     {
-      title: 'Crunches',
+      title: 'Upper Ab Crunch',
+      intervalType: intervalTypes.forReps,
+      reps: 30,
+      sets: 3,
+      rest: 60
+    },
+    {
+      title: 'Twisting Sit Ups',
       intervalType: intervalTypes.forReps,
       reps: 30,
       sets: 3,

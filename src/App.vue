@@ -1,6 +1,5 @@
 <template>
   <el-container>
-    <el-header>Super Workout Timer</el-header>
     <router-view/>
     <el-footer>
       Footer Content
