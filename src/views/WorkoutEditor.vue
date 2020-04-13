@@ -1,13 +1,13 @@
 <template>
   <el-main>
     <el-card>
-      <el-form v-model="workout" :rules="rules">
+      <el-form :model="workout" ref="workoutForm" :rules="rules">
         <el-form-item label="Workout Title" prop="title">
           <el-input v-model="workout.title" />
         </el-form-item>
         <el-collapse accordion>
           <template v-for="(exercise, index) in workout.exercises">
-            <el-collapse-item :key="index" :title="exercise.title || `New Exercise ${index}`" :name="index">
+            <el-collapse-item :key="index" :title="exercise.title || `New Exercise ${index}`" prop="title" :name="index">
               <el-row :gutter="20">
                 <el-col :span="12">
                   <el-form-item label="Exercise Title">
@@ -59,8 +59,10 @@
             </el-collapse-item>  
           </template>
         </el-collapse>
-        <el-button @click="btnAddExerciseOnClick">Add Exercise</el-button>
-        <el-button @click="btnSaveWorkoutOnClick">Save Workout</el-button>
+        <el-form-item>
+          <el-button @click="btnAddExerciseOnClick">Add Exercise</el-button>
+          <el-button @click="btnSaveWorkoutOnClick">Save Workout</el-button>
+        </el-form-item>
       </el-form>
     </el-card>
   </el-main>  
@@ -77,13 +79,16 @@ export default {
         title: '',
         exercises: [],
       },
-      rules: {
+    };
+  },
+  computed: {
+    rules() {
+      return {
         title: [
           { required: true, message: 'A Workout Title is required', trigger: 'blur' },
-          { min: 3, max: 5, message: 'Length should be 3 to 5', trigger: 'blur' }
-        ]
-      }
-    };
+        ],
+      };
+    },
   },
   mounted() {
     const { id: workoutId } = this.$route.params;
@@ -99,21 +104,28 @@ export default {
 
       });
     },
-    btnSaveWorkoutOnClick() {
+    async btnSaveWorkoutOnClick() {
       const { id: workoutId } = this.$route.params;
       const workouts = JSON.parse(window.localStorage.getItem('workouts'));
 
-      if (workoutId === 'new') {
-        const newWorkouts = [...workouts, {
-          id: newRandomId(),
-          ...this.workout,
-        }];
+      this.$refs['workoutForm'].validate(valid => {
+        if (!valid) {
+          return;
+        }
 
-        window.localStorage.setItem('workouts', JSON.stringify(newWorkouts));
-      } else {
-        const newWorkouts = [ ...workouts.filter(({ id }) => id !== workoutId), this.workout ];
-        window.localStorage.setItem('workouts', JSON.stringify(newWorkouts));
-      }
+        if (workoutId === 'new') {
+          const newWorkouts = [...workouts, {
+            id: newRandomId(),
+            ...this.workout,
+          }];
+
+          window.localStorage.setItem('workouts', JSON.stringify(newWorkouts));
+        } else {
+          const newWorkouts = [ ...workouts.filter(({ id }) => id !== workoutId), this.workout ];
+          window.localStorage.setItem('workouts', JSON.stringify(newWorkouts));
+        }
+      });
+
     },
   },
 }
