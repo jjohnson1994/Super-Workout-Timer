@@ -2,20 +2,20 @@
   <el-main>
     <el-card>
       <el-form :model="workout" ref="workoutForm" :rules="rules">
-        <el-form-item label="Workout Title" prop="title">
+        <el-form-item label="Workout Title" prop="title" :rules="rules.required">
           <el-input v-model="workout.title" />
         </el-form-item>
         <el-collapse accordion>
           <template v-for="(exercise, index) in workout.exercises">
-            <el-collapse-item :key="index" :title="exercise.title || `New Exercise ${index}`" prop="title" :name="index">
+            <el-collapse-item :key="index" :title="exercise.title || `New Exercise ${index}`" :name="index">
               <el-row :gutter="20">
                 <el-col :span="12">
-                  <el-form-item label="Exercise Title">
+                  <el-form-item label="Exercise Title" :prop="`exercises[${index}].title`" :rules="rules.required">
                     <el-input v-model="exercise.title" />
                   </el-form-item>
                 </el-col>
                 <el-col :span="12">
-                  <el-form-item label="Interval Type">
+                  <el-form-item label="Interval Type" :prop="`exercises[${index}].intervalType`" :rules="rules.required">
                     <el-select v-model="exercise.intervalType" placeholder="please select your zone">
                       <el-option label="Timed" value="FOR_TIME"></el-option>
                       <el-option label="Reps" value="FOR_REPS"></el-option>
@@ -27,18 +27,18 @@
               <el-row :gutter="20">
                 <template v-if="exercise.intervalType === 'FOR_TIME'">
                   <el-col :span="12">
-                    <el-form-item label="Time On (secs)">
+                    <el-form-item label="Time On (secs)" :prop="`exercises[${index}].timeOn`" :rules="rules.required">
                       <el-input v-model="exercise.timeOn" />
                     </el-form-item>
                   </el-col>
                   <el-col :span="12">
-                    <el-form-item label="Time Off (secs)">
+                    <el-form-item label="Time Off (secs)" :prop="`exercises[${index}].timeOff`" :rules="rules.required">
                       <el-input v-model="exercise.timeOff" />
                     </el-form-item>
                   </el-col>
                 </template>
                 <el-col :span="12">
-                  <el-form-item v-if="exercise.intervalType === 'FOR_REPS'" label="Reps">
+                  <el-form-item v-if="exercise.intervalType === 'FOR_REPS'" label="Reps" :prop="`exercises[${index}].reps`" :rules="rules.required">
                     <el-input v-model="exercise.reps" />
                   </el-form-item>
                 </el-col>
@@ -46,12 +46,12 @@
 
               <el-row :gutter="20">
                 <el-col :span="12">
-                  <el-form-item label="Sets">
+                  <el-form-item label="Sets" :prop="`exercises[${index}].sets`" :rules="rules.required">
                     <el-input v-model="exercise.sets" />
                   </el-form-item>
                 </el-col>
                 <el-col :span="12">
-                  <el-form-item label="Rest (secs)">
+                  <el-form-item label="Rest (secs)" :prop="`exercises[${index}].rest`" :rules="rules.required">
                     <el-input v-model="exercise.rest" />
                   </el-form-item>
                 </el-col>
@@ -84,8 +84,8 @@ export default {
   computed: {
     rules() {
       return {
-        title: [
-          { required: true, message: 'A Workout Title is required', trigger: 'blur' },
+        required: [
+          { required: true, message: 'Field is required', trigger: 'blur' },
         ],
       };
     },
